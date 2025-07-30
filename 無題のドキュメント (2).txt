@@ -1,0 +1,219 @@
+﻿🌍 Learn Local 実装付応仕様書 v3.0
+地域の事情を「教材」にして、学びの入り口に。
+Learn Agency と系列で連携する、最先線の「地域探索垂直型学習SaaS」。
+________________
+
+
+【アーキテクチャ】
+* プロダクト名: Learn Local
+
+* 目的: 地域情報を「教材」化し、AIとの対話や探索により学習モードを生み出す
+
+* 系列連携: Learn Agency (学びの内省モード), Reflective Notes (学び記録)
+
+* 計画所要:
+
+   * SPA構成 (Next.js App Router)
+
+   * 認証なし、Supabase anonロールのみ利用
+
+   * ミニマルSaaS風UI / 余白重視 / スッキリUX
+
+________________
+
+
+【技術スタック】
+類別
+	技術
+	フロントエンド
+	Next.js 15 + Tailwind CSS + TypeScript
+	コンポーネント
+	shadcn/ui + Framer Motion + lucide-react
+	状態管理
+	Zustand (persist middleware)
+	バックエンド
+	Supabase (DB + RLS + Edge Functions)
+	エイアイ
+	GPT-4o (問い生成) + Perplexity (地域検索)
+	________________
+
+
+【UI概要構成】
+☑ トップページ /learn-local
+      * Heroセクション:
+
+         * タイトル: 「地域の今を、学びに変える。」
+
+         * サブテキスト: 「AIと共に探索するローカル教材」
+
+            * 検索バー: Perplexity検索API連携
+
+            * 投稿一覧: 2~3カラムのカード
+
+               * カード内容: タイトル / 簡単な概要 / タグ / 日付
+
+               * CTA: 「AIに聞く」「検索する」
+
+☑ 投稿画面 /learn-local/new
+                  * 認証なしでも、Supabase側のusers.can_post_local_info = trueのみ許可
+
+                  * UI:
+
+                     * タイトル (text-xl)
+
+                     * 本文 (textarea, 500文字直感)
+
+                     * カテゴリ (select)
+
+                     * タグ (複数input)
+
+                     * 画像アップロード
+
+                     * 地図で位置指定 (Leaflet)
+
+☑ 詳細画面 /learn-local/posts/[id]
+                        * Split View表示 (左: 一覧 / 右: 詳細)
+
+                        * AI連携ボタン:
+
+                           * 「AIに聞いてみる」(GPT-4o 問い生成)
+
+                           * 「関連検索」 (Perplexity Edge Function)
+
+                              * Reflective Notes連携: 気づきをメモ化
+
+☑ マイページ /learn-local/me
+                                 * 投稿履歴
+
+                                 * Reflective Notes
+
+                                 * AI問い履歴
+
+                                 * Perplexity検索ログ
+
+________________
+
+
+【基本DB構成 (Supabase)】
+local_posts
+カラム
+	型
+	概要
+	id
+	uuid
+	PK
+	title
+	text
+	タイトル
+	body
+	text
+	本文
+	category
+	text
+	カテゴリ
+	tags
+	text[]
+	タグ
+	image_url
+	text
+	画像URL
+	location
+	text
+	地域
+	is_published
+	boolean
+	公開状態
+	created_at
+	timestamp
+	投稿日
+	users
+カラム
+	型
+	概要
+	id
+	uuid
+	ユーザID
+	session_id
+	text
+	特定情報 (IP/ローカルID)
+	can_post_local_info
+	boolean
+	trueのみ投稿可
+	learning_logs
+カラム
+	型
+	概要
+	id
+	uuid
+	PK
+	user_id
+	uuid/text
+	標記用ユーザ
+	post_id
+	uuid
+	統合先投稿
+	perplexity_summary
+	text
+	Perplexity検索総括
+	ai_questions
+	text[]
+	GPT問題
+	user_notes
+	jsonb
+	Reflective Notes
+	________________
+
+
+【Edge Functionsデプロイコード】
+generate-questions.ts
+                                    * OpenAI GPT-4oに問題生成を依頼
+
+                                    * 投稿本文をpromptとして指定
+
+                                    * 返し値: JSON array形式
+
+perplexity-search.ts
+                                       * Perplexity APIで地域の情報検索
+
+                                       * GPTで問題化して返信
+
+                                       * プロンプトの例:
+
+const prompt = `以下の地域検索情報から、学びの問題を3つ作成せよ:\n${summary}`
+
+
+________________
+
+
+【UI/デザイン方針】
+                                          * 余白はpx-6 md:px-12 lg:px-20で大きめ
+
+                                          * 要素間ギャップ: gap-8~12
+
+                                          * カード: bg-[#FAFAFA] shadow-sm rounded-2xl
+
+                                          * ボタン: rounded-xl px-4 py-2 、色変化のみでミニマル
+
+                                          * 文字: text-[#1F2937]、フォント: Inter
+
+________________
+
+
+【開発フロー推奨】
+                                             1. /learn-local のカード一覧UI
+
+                                             2. /learn-local/new 投稿フォーム
+
+                                             3. Split View の詳細ページ + AI連携
+
+                                             4. Perplexity Edge Function の実装
+
+                                             5. Reflective Notes 構築
+
+                                             6. マイページ編集
+
+________________
+
+
+【紹介用コピーの文字列例】
+Learn Localは、地域情報を教材にして学びを生む、新しい学びのプラットフォームです。ミニマルなUIで、誰でも看れて検索して学べる。そして、AIが教材化をサポートします。
